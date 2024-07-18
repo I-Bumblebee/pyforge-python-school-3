@@ -1,0 +1,4 @@
+local_env
+.pytest_cache
+
+src/__pycache__
