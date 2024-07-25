@@ -2,3 +2,4 @@ local_env
 .pytest_cache
 
 src/__pycache__
+src/db_data
