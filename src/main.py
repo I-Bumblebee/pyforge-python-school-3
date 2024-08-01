@@ -1,3 +1,4 @@
+from os import getenv
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -72,7 +73,7 @@ def destroy_molecule(identifier: str, db: Session = Depends(get_db)):
 def substructure_search(mols, mol):
     substructure = Chem.MolFromSmiles(mol)
     return [
-        m for m in mols 
+        m for m in mols
         if (mol_to_check := Chem.MolFromSmiles(m.smiles)) is not None and mol_to_check.HasSubstructMatch(substructure)
     ]
 
@@ -99,3 +100,8 @@ def index_molecules(
 
     molecules = db.query(Molecule).all()
     return molecules
+
+
+@app.get("/")
+def get_server():
+    return {"server_id": getenv("SERVER_ID", "1")}
