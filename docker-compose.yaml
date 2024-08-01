@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  fastapi:
+    build: .
+    ports:
+      - "8888:8000"
+    volumes:
+      - .:/app
+      - db_data:/app/db_data
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+
+volumes:
+  db_data:
