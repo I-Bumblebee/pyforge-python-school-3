@@ -3,3 +3,7 @@ local_env
 
 src/__pycache__
 src/db_data
+tests/unit/__pycache__
+tests/feature/__pycache__
+tests/__pycache__
+src/db_*
