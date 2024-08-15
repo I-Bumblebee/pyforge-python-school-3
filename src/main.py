@@ -79,8 +79,10 @@ def destroy_molecule(identifier: str, db: Session = Depends(get_db)):
 def index_molecules(
         identifier: Optional[str] = Query(
             None,
-            description="Identifier of a molecule whose substructure will be used to find and match other molecules with similar substructures."),
-    db: Session = Depends(get_db),
+            description="Identifier of a molecule whose \
+                substructure will be used to find\
+              and match other molecules with similar substructures."),
+        db: Session = Depends(get_db),
 ):
     if identifier:
         mol_to_match = (db.query(Molecule).filter(
