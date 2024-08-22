@@ -4,3 +4,4 @@ uvicorn==0.30.3
 fastapi==0.111.1
 SQLAlchemy==2.0.31
 SQLAlchemy-Utils==0.41.2
+flake8==7.1.1
