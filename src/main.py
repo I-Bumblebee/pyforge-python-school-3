@@ -6,12 +6,12 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.models import Molecule
-from src.utils import substructure_search
+from models import Molecule
+from utils import substructure_search
+from config import settings
 
-DATABASE_URL = "sqlite:///./src/db_data/smile.sqlite"
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI()
