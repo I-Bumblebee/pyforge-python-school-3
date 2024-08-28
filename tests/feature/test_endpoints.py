@@ -5,14 +5,17 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from src.main import app, get_db
 from src.models import Base, Molecule
+from src.config import settings
 
 
 @pytest.fixture(scope='module')
 def test_db():
     engine = create_engine(
-        'sqlite:///:memory:',
+        settings.database_url,
         connect_args={
-            'check_same_thread': False})
+            'check_same_thread': False
+        }
+    )
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)
@@ -55,11 +58,14 @@ def test_get_all_molecules(client, mock_molecule_data):
     assert response.status_code == 200
     assert len(response.json()) == len(mock_molecule_data)
 
+
 # This endpoint first gets moelcule with provided identifier
 # then executes substructure search on every other molcules and returns result
 # result allways containes at least one molecule because molecule is
 # substructure of itself
-def test_index_molecules_with_identifier(client, mock_molecule_data):
+def test_index_molecules_with_identifier(
+    client, mock_molecule_data
+):
     response = client.get("/molecules?identifier=test_id_1")
     assert response.status_code == 200
     assert len(response.json()) > 0
