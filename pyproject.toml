@@ -1,0 +1,10 @@
+[tool.pytest_env]
+APP_ENV = "testing"
+
+[tool.flake8]
+exclude = [
+    "**/__pycache__/", 
+    "local_env",
+    "database"
+]
+
