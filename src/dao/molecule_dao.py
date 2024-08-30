@@ -45,6 +45,13 @@ class MoleculeDAO:
 
         await self.session.delete(molecule)
 
+    async def list_molecules(self, identifier: Optional[str] = None) -> List[Molecule]:
+        query = select(Molecule)
+        if identifier:
+            query = query.filter(Molecule.identifier == identifier)
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
     async def find_molecules_by_substructure(
             self, identifier: Optional[str] = None) -> List[Molecule]:
         if identifier:
