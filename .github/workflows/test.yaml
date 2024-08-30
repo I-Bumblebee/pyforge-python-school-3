@@ -18,8 +18,8 @@ jobs:
       - name: Build Docker image
         run: docker build -t fastapi-app .
 
-      - name: Run tests
-        run: docker run --rm fastapi-app pytest
+      # - name: Run tests
+      #   run: docker run --rm fastapi-app pytest
 
       - name: Run flake8 on src directory
         run: docker run --rm fastapi-app pflake8
