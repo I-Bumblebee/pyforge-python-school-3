@@ -1,12 +1,17 @@
-from typing import List, Optional
+import logging.config
+from typing import AsyncIterator, List, Optional
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from configs.database import get_db_session
+from configs.setup_logger import setup_logger
 from src.models.molecule import Molecule
 from src.utils import substructure_search
+
+logger = logging.getLogger(__name__)
+setup_logger()
 
 
 class MoleculeDAO:
@@ -47,13 +52,20 @@ class MoleculeDAO:
 
     async def list_molecules(
             self,
-            identifier: Optional[str] = None
-    ) -> List[Molecule]:
+            identifier: Optional[str] = None,
+            limit: Optional[int] = None
+    ) -> AsyncIterator[Molecule]:
         query = select(Molecule)
         if identifier:
             query = query.filter(Molecule.identifier == identifier)
+        if limit:
+            query = query.limit(limit)
+
         result = await self.session.execute(query)
-        return result.scalars().all()
+        molecules = result.scalars().all()
+
+        for molecule in molecules:
+            yield molecule
 
     async def find_molecules_by_substructure(
             self, identifier: Optional[str] = None) -> List[Molecule]:
