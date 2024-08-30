@@ -4,8 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.main import app, get_db
-from src.models import Base, Molecule
-from src.config import settings
+from src.models.molecule import Base, Molecule
+from configs.settings import settings
 
 
 @pytest.fixture(scope='module')
