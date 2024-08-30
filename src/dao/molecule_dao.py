@@ -45,7 +45,10 @@ class MoleculeDAO:
 
         await self.session.delete(molecule)
 
-    async def list_molecules(self, identifier: Optional[str] = None) -> List[Molecule]:
+    async def list_molecules(
+            self,
+            identifier: Optional[str] = None
+    ) -> List[Molecule]:
         query = select(Molecule)
         if identifier:
             query = query.filter(Molecule.identifier == identifier)
