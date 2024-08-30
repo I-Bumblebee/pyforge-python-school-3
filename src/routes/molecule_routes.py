@@ -50,7 +50,9 @@ async def index_molecules(
 async def search_molecules_by_substructure(
         identifier: Optional[str] = Query(
             None,
-            description="Identifier of a molecule whose substructure will be used to find and match other molecules with similar substructures."
+            description="Identifier of a molecule whose\
+                  substructure will be used to find and\
+                      match other molecules with similar substructures."
         ),
         dao: MoleculeDAO = Depends()):
     return await dao.find_molecules_by_substructure(identifier)
