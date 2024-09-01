@@ -11,10 +11,7 @@ from configs.settings import settings
 @pytest.fixture(scope='module')
 def test_db():
     engine = create_engine(
-        settings.database_url,
-        connect_args={
-            'check_same_thread': False
-        }
+        settings.database_url, connect_args={'check_same_thread': False}
     )
     Base.metadata.create_all(engine)
     yield engine
@@ -45,7 +42,6 @@ def mock_molecule_data(db_session: Session):
         Molecule(identifier="test_id_2", smiles="CCO"),
         Molecule(identifier="test_id_3", smiles="CC(=O)Oc1ccccc1C(=O)O"),
         Molecule(identifier="test_id_4", smiles="c1ccccc1"),
-
     ]
     db_session.add_all(molecules)
     db_session.commit()
@@ -63,9 +59,7 @@ def test_get_all_molecules(client, mock_molecule_data):
 # then executes substructure search on every other molcules and returns result
 # result allways containes at least one molecule because molecule is
 # substructure of itself
-def test_index_molecules_with_identifier(
-    client, mock_molecule_data
-):
+def test_index_molecules_with_identifier(client, mock_molecule_data):
     response = client.get("/molecules?identifier=test_id_1")
     assert response.status_code == 200
     assert len(response.json()) > 0
@@ -75,4 +69,5 @@ def test_index_molecules_with_nonexistent_identifier(client):
     response = client.get("/molecules?identifier=nonexistent_id")
     assert response.status_code == 404
     assert response.json() == {
-        "detail": "Molecule with given identifier not found"}
+        "detail": "Molecule with given identifier not found"
+    }

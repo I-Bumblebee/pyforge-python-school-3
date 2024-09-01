@@ -24,16 +24,18 @@ class MoleculeDAO:
         return new_molecule
 
     async def get_molecule_by_identifier(self, identifier: str) -> Molecule:
-        result = await self.session.execute(select(Molecule)
-                                            .filter_by(identifier=identifier))
+        result = await self.session.execute(
+            select(Molecule).filter_by(identifier=identifier)
+        )
         molecule = result.scalars().first()
         if not molecule:
             raise HTTPException(status_code=404, detail="Molecule not found")
         return molecule
 
     async def update_molecule(self, identifier: str, smiles: str) -> Molecule:
-        result = await self.session.execute(select(Molecule)
-                                            .filter_by(identifier=identifier))
+        result = await self.session.execute(
+            select(Molecule).filter_by(identifier=identifier)
+        )
         molecule = result.scalars().first()
         if not molecule:
             raise HTTPException(status_code=404, detail="Molecule not found")
@@ -42,8 +44,9 @@ class MoleculeDAO:
         return molecule
 
     async def delete_molecule(self, identifier: str) -> None:
-        result = await self.session.execute(select(Molecule)
-                                            .filter_by(identifier=identifier))
+        result = await self.session.execute(
+            select(Molecule).filter_by(identifier=identifier)
+        )
         molecule = result.scalars().first()
         if not molecule:
             raise HTTPException(status_code=404, detail="Molecule not found")
@@ -51,9 +54,9 @@ class MoleculeDAO:
         await self.session.delete(molecule)
 
     async def list_molecules(
-            self,
-            identifier: Optional[str] = None,
-            limit: Optional[int] = None
+        self,
+        identifier: Optional[str] = None,
+        limit: Optional[int] = None
     ) -> AsyncIterator[Molecule]:
         query = select(Molecule)
         if identifier:
@@ -68,7 +71,8 @@ class MoleculeDAO:
             yield molecule
 
     async def find_molecules_by_substructure(
-            self, identifier: Optional[str] = None) -> List[Molecule]:
+        self, identifier: Optional[str] = None
+    ) -> List[Molecule]:
         if identifier:
             result = await self.session.execute(
                 select(Molecule).filter_by(identifier=identifier)
@@ -78,13 +82,15 @@ class MoleculeDAO:
             if not mol_to_match:
                 raise HTTPException(
                     status_code=404,
-                    detail="Molecule with given identifier not found")
+                    detail="Molecule with given identifier not found"
+                )
 
             all_molecules_result = await self.session.execute(select(Molecule))
             all_molecules = all_molecules_result.scalars().all()
 
             filtered_molecules = substructure_search(
-                all_molecules, mol_to_match.smiles)
+                all_molecules, mol_to_match.smiles
+            )
             return filtered_molecules
 
         all_molecules_result = await self.session.execute(select(Molecule))
