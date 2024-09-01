@@ -1,4 +1,4 @@
-local_env
+venv
 
 .pytest_cache
 
@@ -6,5 +6,3 @@ local_env
 
 .env
 .env.testing
-
-*.log*
