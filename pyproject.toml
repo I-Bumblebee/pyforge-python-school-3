@@ -4,7 +4,10 @@ APP_ENV = "testing"
 [tool.flake8]
 exclude = [
     "**/__pycache__/", 
-    "local_env",
+    "venv",
     "database"
 ]
 
+[tool.yapf]
+based_on_style = "facebook"
+column_limit = 79
