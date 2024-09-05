@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 from configs.redis import get_cached_result, set_cache
@@ -56,7 +57,7 @@ async def view_molecule(identifier: str, dao: MoleculeDAO = Depends()):
             extra={"identifier": identifier}
         )
 
-        set_cache(cache_key, res)
+        set_cache(cache_key, jsonable_encoder(res))
 
     except Exception as e:
         logger.error(
@@ -143,7 +144,7 @@ async def index_molecules(
             "Molecules listed successfully", extra={"count": len(molecules)}
         )
 
-        set_cache(cache_key, molecules)
+        set_cache(cache_key, jsonable_encoder(molecules))
 
     except Exception as e:
         logger.error(
