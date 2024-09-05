@@ -11,3 +11,10 @@ exclude = [
 [tool.yapf]
 based_on_style = "facebook"
 column_limit = 79
+
+[tool.isort]
+skip = [
+    "venv",
+    "database"
+]
+line_length = 79
