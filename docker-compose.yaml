@@ -10,8 +10,20 @@ services:
     networks:
       - webnet
 
+  redis:
+    image: "redis:alpine"
+    env_file:
+      - .env
+    ports:
+      - '${REDIS_EXPOSED_PORT:-6379}:6379'
+    networks:
+      - webnet
+
   fastapi:
-    build: .
+    build:
+      context: .
+      args:
+        APP_ENV: local 
     volumes:
       - .:/app
     networks:
