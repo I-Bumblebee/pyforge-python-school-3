@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str
     redis_port: int
+    redis_host: str
     cache_duration: int
 
     model_config = SettingsConfigDict(

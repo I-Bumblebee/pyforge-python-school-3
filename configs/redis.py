@@ -1,8 +1,10 @@
-import redis
 import json
+
+import redis
+
 from .settings import settings
 
-redis_client = redis.Redis(port=settings.redis_port)
+redis_client = redis.Redis(port=settings.redis_port, host=settings.redis_host)
 
 
 def get_cached_result(key: str):
