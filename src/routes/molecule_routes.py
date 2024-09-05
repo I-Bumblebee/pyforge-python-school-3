@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
+from configs.redis import get_cached_result, set_cache
 from configs.setup_logger import setup_logger
 from dao.molecule_dao import MoleculeDAO
 
@@ -39,12 +40,24 @@ async def view_molecule(identifier: str, dao: MoleculeDAO = Depends()):
     logger.info(
         "Received request to view molecule", extra={"identifier": identifier}
     )
+
+    cache_key = f"molecule:{identifier}"
+
+    cached_result = get_cached_result(cache_key)
+    if cached_result:
+        logger.info("Cache hit for molecule", extra={"identifier": identifier})
+        return cached_result
+
     try:
         res = await dao.get_molecule_by_identifier(identifier)
+
         logger.info(
             "Molecule retrieved successfully",
             extra={"identifier": identifier}
         )
+
+        set_cache(cache_key, res)
+
     except Exception as e:
         logger.error(
             "Error retrieving molecule",
@@ -52,6 +65,7 @@ async def view_molecule(identifier: str, dao: MoleculeDAO = Depends()):
             extra={"identifier": identifier}
         )
         raise
+
     return res
 
 
@@ -102,7 +116,6 @@ async def destroy_molecule(identifier: str, dao: MoleculeDAO = Depends()):
 @router.get("/molecules/")
 async def index_molecules(
     identifier: Optional[str] = None,
-    # Setting an upper limit for safety
     limit: Optional[int] = Query(None, le=1000),
     dao: MoleculeDAO = Depends()
 ):
@@ -113,6 +126,14 @@ async def index_molecules(
             "limit": limit
         }
     )
+
+    cache_key = f"molecules:{identifier}:{limit}"
+
+    cached_result = get_cached_result(cache_key)
+    if cached_result is not None:
+        logger.info("Cache hit for molecules", extra={"cache_key": cache_key})
+        return cached_result
+
     try:
         molecules = [
             molecule async for molecule in
@@ -121,6 +142,9 @@ async def index_molecules(
         logger.info(
             "Molecules listed successfully", extra={"count": len(molecules)}
         )
+
+        set_cache(cache_key, molecules)
+
     except Exception as e:
         logger.error(
             "Error listing molecules",
@@ -131,6 +155,7 @@ async def index_molecules(
             }
         )
         raise
+
     return molecules
 
 
