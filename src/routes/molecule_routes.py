@@ -158,37 +158,3 @@ async def index_molecules(
         raise
 
     return molecules
-
-
-@router.get("/molecules/search/")
-async def search_molecules_by_substructure(
-    identifier: Optional[str] = Query(
-        None,
-        description=(
-            "Identifier of a molecule whose substructure will be used to "
-            "find and match other molecules with similar substructures."
-        )
-    ),
-    dao: MoleculeDAO = Depends()
-):
-    logger.info(
-        "Received request to search molecules by substructure",
-        extra={"identifier": identifier}
-    )
-    try:
-        res = await dao.find_molecules_by_substructure(identifier)
-        logger.info(
-            "Molecules found by substructure search",
-            extra={
-                "identifier": identifier,
-                "count": len(res)
-            }
-        )
-    except Exception as e:
-        logger.error(
-            "Error searching molecules by substructure",
-            exc_info=e,
-            extra={"identifier": identifier}
-        )
-        raise
-    return res
