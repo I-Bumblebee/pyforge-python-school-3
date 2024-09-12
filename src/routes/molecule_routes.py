@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -8,6 +9,8 @@ from pydantic import BaseModel
 from configs.redis import get_cached_result, set_cache
 from configs.setup_logger import setup_logger
 from dao.molecule_dao import MoleculeDAO
+from src.celery_worker import celery_app
+from src.tasks import fetch_and_cache_molecules
 
 logger = logging.getLogger(__name__)
 setup_logger()
@@ -118,7 +121,6 @@ async def destroy_molecule(identifier: str, dao: MoleculeDAO = Depends()):
 async def index_molecules(
     identifier: Optional[str] = None,
     limit: Optional[int] = Query(None, le=1000),
-    dao: MoleculeDAO = Depends()
 ):
     logger.info(
         "Received request to list molecules",
@@ -136,15 +138,8 @@ async def index_molecules(
         return cached_result
 
     try:
-        molecules = [
-            molecule async for molecule in
-            dao.list_molecules(identifier=identifier, limit=limit)
-        ]
-        logger.info(
-            "Molecules listed successfully", extra={"count": len(molecules)}
-        )
-
-        set_cache(cache_key, jsonable_encoder(molecules))
+        task = fetch_and_cache_molecules.delay(identifier, limit)
+        return {"task_id": task.id, "status": task.status}
 
     except Exception as e:
         logger.error(
@@ -157,4 +152,23 @@ async def index_molecules(
         )
         raise
 
-    return molecules
+
+@router.get("/task/{task_id}")
+async def get_task_status(task_id: str):
+    task_result = AsyncResult(task_id, app=celery_app)
+    if task_result.state == 'PENDING':
+        return {
+            "task_id": task_id,
+            "status": "Task is still processing",
+        }
+    elif task_result.state == 'SUCCESS':
+        return {
+            "task_id": task_id,
+            "status": "Task completed",
+            "result": task_result.result,
+        }
+    else:
+        return {
+            "task_id": task_id,
+            "status": task_result.state,
+        }
