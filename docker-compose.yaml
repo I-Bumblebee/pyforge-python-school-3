@@ -30,6 +30,8 @@ services:
       - webnet
     depends_on:
       - postgres
+      - redis
+    entrypoint: ["/app/entrypoint.sh"]
 
   fastapi1:
     extends:
