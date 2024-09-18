@@ -1,9 +1,9 @@
-local_env
+.vscode
+venv
+
 .pytest_cache
 
-src/__pycache__
-src/db_data
-tests/unit/__pycache__
-tests/feature/__pycache__
-tests/__pycache__
+**/__pycache__/
+
 .env
+.env.testing
