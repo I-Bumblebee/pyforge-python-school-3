@@ -1,4 +1,5 @@
-local_env
+.vscode
+venv
 
 .pytest_cache
 
