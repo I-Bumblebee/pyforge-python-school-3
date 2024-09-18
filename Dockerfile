@@ -15,11 +15,16 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+
 COPY requirements-dev.txt .
+
+ARG APP_ENV
+ENV APP_ENV=$APP_ENV
 
 RUN if [ "$APP_ENV" != "production" ]; then \
         pip install --no-cache-dir -r requirements-dev.txt; \
     fi
+
 
 COPY . .
 
@@ -27,9 +32,4 @@ EXPOSE 8000
 
 ENTRYPOINT ["sh", "-c"]
 
-# When testing do not seed data
-CMD if [ "$APP_ENV" = "testing" ]; then \
-        alembic upgrade head && exec uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload; \
-    else \
-        alembic -x data=true upgrade head && exec uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload; \
-    fi
+CMD ["alembic -x data=true upgrade head && exec uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"]
