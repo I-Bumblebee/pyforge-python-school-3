@@ -1,14 +1,15 @@
 import logging.config
-from typing import AsyncIterator, List, Optional
+from typing import AsyncIterator, Optional
 
 from fastapi import Depends, HTTPException
+from rdkit import Chem
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from configs.database import get_db_session
 from configs.setup_logger import setup_logger
 from src.models.molecule import Molecule
-from src.utils import substructure_search
+from src.utils import limit_async_generator, substructure_matches
 
 logger = logging.getLogger(__name__)
 setup_logger()
@@ -24,68 +25,41 @@ class MoleculeDAO:
         return new_molecule
 
     async def get_molecule_by_identifier(self, identifier: str) -> Molecule:
-        result = await self.session.execute(select(Molecule)
-                                            .filter_by(identifier=identifier))
-        molecule = result.scalars().first()
+        query = select(Molecule).filter_by(identifier=identifier)
+        molecule = (await self.session.execute(query)).scalar_one_or_none()
+
         if not molecule:
             raise HTTPException(status_code=404, detail="Molecule not found")
         return molecule
 
     async def update_molecule(self, identifier: str, smiles: str) -> Molecule:
-        result = await self.session.execute(select(Molecule)
-                                            .filter_by(identifier=identifier))
-        molecule = result.scalars().first()
-        if not molecule:
-            raise HTTPException(status_code=404, detail="Molecule not found")
-
+        molecule = await self.get_molecule_by_identifier(identifier)
         molecule.smiles = smiles
         return molecule
 
     async def delete_molecule(self, identifier: str) -> None:
-        result = await self.session.execute(select(Molecule)
-                                            .filter_by(identifier=identifier))
-        molecule = result.scalars().first()
-        if not molecule:
-            raise HTTPException(status_code=404, detail="Molecule not found")
-
+        molecule = await self.get_molecule_by_identifier(identifier)
         await self.session.delete(molecule)
 
+    @limit_async_generator
     async def list_molecules(
-            self,
-            identifier: Optional[str] = None,
-            limit: Optional[int] = None
+        self,
+        limit: Optional[int] = None,
+        identifier: Optional[str] = None,
     ) -> AsyncIterator[Molecule]:
-        query = select(Molecule)
+        query = select(Molecule).execution_options(stream_results=True)
+
+        mol_to_match_to = None
         if identifier:
-            query = query.filter(Molecule.identifier == identifier)
-        if limit:
-            query = query.limit(limit)
-
-        result = await self.session.execute(query)
-        molecules = result.scalars().all()
-
-        for molecule in molecules:
-            yield molecule
-
-    async def find_molecules_by_substructure(
-            self, identifier: Optional[str] = None) -> List[Molecule]:
-        if identifier:
-            result = await self.session.execute(
-                select(Molecule).filter_by(identifier=identifier)
+            molecule_to_match_to = await self.get_molecule_by_identifier(
+                identifier
             )
-            mol_to_match = result.scalars().first()
+            mol_to_match_to = Chem.MolFromSmiles(molecule_to_match_to.smiles)
 
-            if not mol_to_match:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Molecule with given identifier not found")
-
-            all_molecules_result = await self.session.execute(select(Molecule))
-            all_molecules = all_molecules_result.scalars().all()
-
-            filtered_molecules = substructure_search(
-                all_molecules, mol_to_match.smiles)
-            return filtered_molecules
-
-        all_molecules_result = await self.session.execute(select(Molecule))
-        return all_molecules_result.scalars().all()
+        async for molecule in await self.session.stream_scalars(query):
+            if identifier and not substructure_matches(
+                molecule,
+                mol_to_match_to,
+            ):
+                continue
+            yield molecule

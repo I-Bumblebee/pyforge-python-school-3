@@ -1,78 +1,110 @@
+import logging
+
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
-from src.main import app, get_db
-from src.models.molecule import Base, Molecule
-from configs.settings import settings
+from configs.setup_logger import setup_logger
+from src.models.molecule import Molecule
 
-
-@pytest.fixture(scope='module')
-def test_db():
-    engine = create_engine(
-        settings.database_url,
-        connect_args={
-            'check_same_thread': False
-        }
-    )
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
+logger = logging.getLogger(__name__)
+setup_logger()
 
 
-@pytest.fixture(scope='function')
-def db_session(test_db):
-    connection = test_db.connect()
-    transaction = connection.begin()
-    session = sessionmaker(bind=connection)()
-    yield session
-    session.close()
-    transaction.rollback()
-    connection.close()
-
-
-@pytest.fixture
-def client(db_session):
-    app.dependency_overrides[get_db] = lambda: db_session
-    return TestClient(app)
-
-
-@pytest.fixture
-def mock_molecule_data(db_session: Session):
-    molecules = [
-        Molecule(identifier="test_id_1", smiles="C1=CC=CC=C1"),
-        Molecule(identifier="test_id_2", smiles="CCO"),
-        Molecule(identifier="test_id_3", smiles="CC(=O)Oc1ccccc1C(=O)O"),
-        Molecule(identifier="test_id_4", smiles="c1ccccc1"),
-
-    ]
-    db_session.add_all(molecules)
-    db_session.commit()
-
-    return molecules
-
-
-def test_get_all_molecules(client, mock_molecule_data):
-    response = client.get("/molecules")
-    assert response.status_code == 200
-    assert len(response.json()) == len(mock_molecule_data)
-
-
-# This endpoint first gets moelcule with provided identifier
-# then executes substructure search on every other molcules and returns result
-# result allways containes at least one molecule because molecule is
-# substructure of itself
-def test_index_molecules_with_identifier(
-    client, mock_molecule_data
+@pytest.mark.asyncio
+async def test_create_and_verify_molecule_in_db(
+    async_client: AsyncClient,
+    test_session: AsyncSession,
 ):
-    response = client.get("/molecules?identifier=test_id_1")
+    molecule_data = {
+        "identifier": "test123",
+        "smiles": "C1=CC=CC=C1",
+    }
+
+    response = await async_client.post("/molecules/", json=molecule_data)
+
     assert response.status_code == 200
-    assert len(response.json()) > 0
+
+    created_molecule = (
+        await test_session.execute(
+            select(Molecule).filter_by(identifier=molecule_data["identifier"])
+        )
+    ).scalar_one()
+
+    assert created_molecule is not None
+    assert created_molecule.identifier == molecule_data["identifier"]
+    assert created_molecule.smiles == molecule_data["smiles"]
 
 
-def test_index_molecules_with_nonexistent_identifier(client):
-    response = client.get("/molecules?identifier=nonexistent_id")
-    assert response.status_code == 404
-    assert response.json() == {
-        "detail": "Molecule with given identifier not found"}
+@pytest.mark.asyncio
+async def test_get_molecule(
+    async_client: AsyncClient,
+    test_session: AsyncSession,
+):
+    molecule = Molecule(
+        identifier="mol_test",
+        smiles="CCO",
+    )
+    test_session.add(molecule)
+
+    response = await async_client.get(f"/molecules/{molecule.identifier}")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["identifier"] == molecule.identifier
+    assert data["smiles"] == molecule.smiles
+
+
+@pytest.mark.asyncio
+async def test_update_molecule(
+    async_client: AsyncClient,
+    test_session: AsyncSession,
+):
+    molecule = Molecule(
+        identifier="mol_update",
+        smiles="C2H6",
+    )
+    test_session.add(molecule)
+
+    new_data = {"identifier": "mol_update", "smiles": "CH4"}
+    response = await async_client.put(
+        f"/molecules/{molecule.identifier}",
+        json=new_data,
+    )
+
+    assert response.status_code == 200
+
+    updated_molecule = (
+        await test_session.execute(
+            select(Molecule).filter_by(identifier="mol_update")
+        )
+    ).scalar_one()
+
+    assert updated_molecule is not None
+    assert updated_molecule.smiles == new_data["smiles"]
+
+
+@pytest.mark.asyncio
+async def test_delete_molecule(
+    async_client: AsyncClient,
+    test_session: AsyncSession,
+):
+    molecule = Molecule(
+        identifier="mol_delete",
+        smiles="CO2",
+    )
+    test_session.add(molecule)
+
+    response = await async_client.delete(f"/molecules/{molecule.identifier}")
+
+    assert response.status_code == 200
+
+    result = (
+        await test_session.execute(
+            select(Molecule).filter_by(identifier="mol_delete")
+        )
+    ).scalar_one_or_none()
+
+    assert result is None
