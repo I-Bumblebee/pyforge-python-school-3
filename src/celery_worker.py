@@ -10,6 +10,9 @@ celery_app = Celery(
     backend=redis_url,
 )
 
-celery_app.conf.update(task_track_started=True)
-
-import src.tasks
+celery_app.conf.update(
+    task_track_started=True,
+    imports=[
+        'src.tasks',
+    ],
+)
