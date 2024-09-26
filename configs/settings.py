@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     redis_port: int
     redis_host: str
     cache_duration: int
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    region_name: str
 
     model_config = SettingsConfigDict(
         case_sensitive=False,
