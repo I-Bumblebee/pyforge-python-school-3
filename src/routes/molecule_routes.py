@@ -3,7 +3,6 @@ from typing import Optional
 
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, Query
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 from configs.redis import get_cached_result, set_cache
@@ -60,7 +59,7 @@ async def view_molecule(identifier: str, dao: MoleculeDAO = Depends()):
             extra={"identifier": identifier}
         )
 
-        set_cache(cache_key, jsonable_encoder(res))
+        set_cache(cache_key, res)
 
     except Exception as e:
         logger.error(
