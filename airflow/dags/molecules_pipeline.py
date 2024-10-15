@@ -1,3 +1,4 @@
+import asyncio
 import io
 from datetime import datetime
 from typing import Dict, List
@@ -12,7 +13,6 @@ from rdkit.Chem import Crippen, Descriptors
 from configs.database import get_db_session
 from configs.settings import settings
 from src.dao.molecule_dao import MoleculeDAO
-from src.models.molecule import Molecule
 from src.utils import is_lipinski_pass
 
 
@@ -24,23 +24,35 @@ from src.utils import is_lipinski_pass
 )
 def molecules_pipeline():
     @task
-    async def extract_data() -> List[Molecule]:
-        async with get_db_session() as session:
-            molecules_dao = MoleculeDAO(session)
-            return [
-                molecule async for molecule in molecules_dao.list_molecules()
-            ]
+    def extract_data() -> List[Dict]:
+        async def run_async():
+            async for session in get_db_session():
+                molecules_dao = MoleculeDAO(session)
+                return [
+                    {
+                        'id': molecule.id,
+                        'identifier': molecule.identifier,
+                        'smiles': molecule.smiles,
+                    } async for molecule in molecules_dao.list_molecules()
+                ]
+
+        return asyncio.run(run_async())
 
     @task
-    def transform_data(molecules: List[Molecule]) -> List[Dict]:
+    def transform_data(molecules: List[Dict]) -> List[Dict]:
         transformed_data = []
         for molecule in molecules:
-            mol = Chem.MolFromSmiles(molecule.smiles)
+            mol = Chem.MolFromSmiles(molecule['smiles'])
+
+            # If smiles couldn't be parsed None is returned
+            if not mol:
+                continue
+
             transformed_data.append(
                 {
-                    'id': molecule.id,
-                    'identifier': molecule.identifier,
-                    'smiles': molecule.smiles,
+                    'id': molecule['id'],
+                    'identifier': molecule['identifier'],
+                    'smiles': molecule['smiles'],
                     'molecular_weight': Descriptors.ExactMolWt(mol),
                     'logP': Crippen.MolLogP(mol),
                     'TPSA': Descriptors.TPSA(mol),
