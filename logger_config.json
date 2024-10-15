@@ -7,7 +7,7 @@
         "datefmt": "%Y-%m-%dT%H:%M:%S%z"
       },
       "json": {
-        "()": "logger.JSONFormatter",
+        "()": "src.logger.JSONFormatter",
         "fmt_keys": {
           "level": "levelname",
           "message": "message",

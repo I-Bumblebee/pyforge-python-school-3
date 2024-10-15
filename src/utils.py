@@ -2,8 +2,9 @@ from functools import wraps
 from typing import Any, AsyncIterator, Callable, TypeVar
 
 from rdkit import Chem
+from rdkit.Chem import Crippen, Descriptors
 
-from models.molecule import Molecule
+from src.models.molecule import Molecule
 
 T = TypeVar('T')
 
@@ -53,3 +54,34 @@ def substructure_matches(
 
     mol_to_check = Chem.MolFromSmiles(molecule.smiles)
     return mol_to_check.HasSubstructMatch(mol_to_match_to)
+
+
+def is_lipinski_pass(mol):
+    """
+    Check if a molecule satisfies Lipinski's Rule of Five.
+
+    Lipinski's Rule of Five is a set of criteria used to evaluate
+    the drug-likeness of a compound based on its chemical properties.
+    Specifically, it evaluates the molecular weight, LogP, number of
+    hydrogen bond donors, and number of hydrogen bond acceptors.
+
+    Parameters:
+    ----------
+    mol : rdkit.Chem.Mol
+        An RDKit molecule object representing the compound to be evaluated.
+
+    Returns:
+    -------
+    bool
+        True if the molecule satisfies all Lipinski's criteria
+        False otherwise.
+
+    For detailed information on how the values are calculated, please visit:
+    https://squonk.it/docs/cells/Lipinski%20filter%20(RDKit)/
+    """
+    mw = Descriptors.ExactMolWt(mol)
+    logp = Crippen.MolLogP(mol)
+    h_donors = Descriptors.NumHDonors(mol)
+    h_acceptors = Descriptors.NumHAcceptors(mol)
+
+    return (mw <= 500 and logp <= 5 and h_donors <= 5 and h_acceptors <= 10)
